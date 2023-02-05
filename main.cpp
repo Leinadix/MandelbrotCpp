@@ -31,11 +31,11 @@ const float highres_factor = 1;
 
 int Frame_Count = 0;
 
-void ShowDebug(double x, double y, double zoom, int res, int deep) {
-    std::cout << "\x1B[2J\x1B[H" << "Pos x: " << x << "\nPos y: " << y << "\nZoom level: " << log2(1 / zoom) << "x\nIterations: " << res << "\nDeepness: " << deep << "\n";
+void ShowDebug(double x, double y, double zoom, int res) {
+    std::cout << "\x1B[2J\x1B[H" << "Pos x: " << x << "\nPos y: " << y << "\nZoom level: " << log2(1 / zoom) << "x\nIterations: " << res << "\n";
 }
 
-void Render(cl::Context& context, cl::Kernel& kernel, cl::CommandQueue& command_queue, SDL_Texture*& texture, SDL_Renderer*& renderer, double& zoom, double& offset_x, double& offset_y, int& resolution, int& deepness) {
+void Render(cl::Context& context, cl::Kernel& kernel, cl::CommandQueue& command_queue, SDL_Texture*& texture, SDL_Renderer*& renderer, double zoom, double offset_x, double offset_y, int resolution) {
     cl::Buffer output_cl(context, CL_MEM_WRITE_ONLY, width * height * sizeof(unsigned char));
 
     kernel.setArg(0, output_cl);
@@ -45,7 +45,6 @@ void Render(cl::Context& context, cl::Kernel& kernel, cl::CommandQueue& command_
     kernel.setArg(4, offset_x);
     kernel.setArg(5, offset_y);
     kernel.setArg(6, resolution);
-    kernel.setArg(7, deepness);
 
     cl::NDRange global_size(width, height);
     command_queue.enqueueNDRangeKernel(kernel, cl::NullRange, global_size);
@@ -61,7 +60,7 @@ void Render(cl::Context& context, cl::Kernel& kernel, cl::CommandQueue& command_
 
     SDL_RenderPresent(renderer);
     delete[] output;
-    ShowDebug(offset_x, offset_y, zoom, resolution, deepness);
+    ShowDebug(offset_x, offset_y, zoom, resolution);
 }
 
 int main(int argc, char* args[]){
@@ -91,7 +90,6 @@ int main(int argc, char* args[]){
     double offset_x = 0;
     double offset_y = 0;
     int resolution = 256;
-    int deepness = 4;
 
     bool quit = false;
     bool right = false;
@@ -102,12 +100,10 @@ int main(int argc, char* args[]){
     bool minus = false;
     bool plus_res = false;
     bool minus_res = false;
-    bool plus_deep = false;
-    bool minus_deep = false;
 
 
     while (!quit) {
-        Render(context, kernel, command_queue, texture, renderer, zoom, offset_x, offset_y, resolution, deepness);
+        Render(context, kernel, command_queue, texture, renderer, zoom, offset_x, offset_y, resolution);
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -149,14 +145,6 @@ int main(int argc, char* args[]){
                     if (!minus_res) resolution *= 2;
                     minus_res = true;
                     break;
-                case 110:
-                    if (!plus_deep) deepness++; if (deepness < 1) deepness = 1;
-                    plus_deep = true;
-                    break;
-                case 98:
-                    if (!minus_deep) deepness--;
-                    minus_deep = true;
-                    break;
                 }
 
                 break;
@@ -186,12 +174,6 @@ int main(int argc, char* args[]){
                     break;
                 case 46:
                     minus_res = false;
-                    break;
-                case 110:
-                    plus_deep = false;
-                    break;
-                case 98:
-                    minus_deep = false;
                     break;
                 }
                 break;
