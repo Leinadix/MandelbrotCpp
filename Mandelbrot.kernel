@@ -1,0 +1,28 @@
+__kernel void mandelbrot(__global uchar *output, int width, int height, double zoom, double x_offset, double y_offset, int res, int deep) {
+          x_offset = x_offset / 10;
+          y_offset = y_offset / 10;
+          
+          int gid_x = get_global_id(0);
+          int gid_y = get_global_id(1);
+
+          double x = (gid_x - width / 2) * zoom / width + x_offset;
+          double y = (gid_y - height / 2) * zoom / height + y_offset;
+
+          double real = x;
+          double imag = y;
+
+          int value = 0;
+          int iterations = 0;
+
+          while (iterations < res && value < deep) {
+            double r2 = real * real;
+            double i2 = imag * imag;
+
+            imag = 2 * real * imag + y;
+            real = r2 - i2 + x;
+
+            value = r2 + i2;
+            iterations++;
+          }
+          output[gid_y * width + gid_x] = iterations;
+        }
